@@ -1,0 +1,47 @@
+
+name: Build Android APK
+
+on:
+  push:
+    paths:
+      - 'ChatGPT_Video_Downloader_Android_Source.zip'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Extract Android project ZIP
+        run: |
+          test -f ChatGPT_Video_Downloader_Android_Source.zip
+          unzip -o ChatGPT_Video_Downloader_Android_Source.zip -d extracted-project
+          test -f extracted-project/ChatGPTVideoDownloadManager/app/src/main/java/com/example/chatgptvideodownloadmanager/MainActivity.kt
+
+      - name: Build debug APK
+        working-directory: extracted-project/ChatGPTVideoDownloadManager
+        run: gradle assembleDebug --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatGPTVideoDownloadManager-debug-apk
+          path: extracted-project/ChatGPTVideoDownloadManager/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
