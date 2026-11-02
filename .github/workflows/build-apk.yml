@@ -1,10 +1,9 @@
-
 name: Build Android APK
 
 on:
   push:
     paths:
-      -ChatGPT_Video_Downloader_Android_Build_Setup.zip
+      - 'ChatGPT_Video_Downloader_Android_Build_Setup.zip'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
@@ -14,6 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -29,19 +29,39 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Extract Android project ZIP
+      - name: Extract and locate Android project
+        id: extract
+        shell: bash
         run: |
-          test -f ChatGPT_Video_Downloader_Android_Build_Setup.zip
-          unzip -o ChatGPT_Video_Downloader_Android_Build_Setup.zip  -d extracted-project
-          test -f extracted-project/ChatGPTVideoDownloadManager/app/src/main/java/com/example/chatgptvideodownloadmanager/MainActivity.kt
+          set -euo pipefail
+          ZIP_FILE="ChatGPT_Video_Downloader_Android_Build_Setup.zip"
+          if [[ ! -f "$ZIP_FILE" ]]; then
+            echo "ERROR: ZIP file not found: $ZIP_FILE"
+            exit 1
+          fi
+          mkdir -p extracted-project
+          unzip -o "$ZIP_FILE" -d extracted-project
+          echo 'Files extracted from ZIP:'
+          find extracted-project -maxdepth 4 -type f | head -80
+          SETTINGS_FILE="$(find "$GITHUB_WORKSPACE/extracted-project" -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
+          if [[ -z "$SETTINGS_FILE" ]]; then
+            echo 'ERROR: No settings.gradle or settings.gradle.kts found. The ZIP may not contain a complete Android project.'
+            exit 1
+          fi
+          PROJECT_DIR="$(dirname "$SETTINGS_FILE")"
+          if [[ ! -f "$PROJECT_DIR/app/build.gradle" && ! -f "$PROJECT_DIR/app/build.gradle.kts" ]]; then
+            echo 'ERROR: Android app Gradle build file not found in the project folder.'
+            exit 1
+          fi
+          echo "project_dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Build debug APK
-        working-directory: extracted-project/ChatGPTVideoDownloadManager
-        run: gradle assembleDebug --stacktrace
+        working-directory: ${{ steps.extract.outputs.project_dir }}
+        run: gradle assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ChatGPTVideoDownloadManager-debug-apk
-          path: extracted-project/ChatGPTVideoDownloadManager/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.extract.outputs.project_dir }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
