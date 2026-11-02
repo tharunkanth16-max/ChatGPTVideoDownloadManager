@@ -31,8 +31,8 @@ jobs:
 
       - name: Extract Android project ZIP
         run: |
-          test -f ChatGPT_Video_Downloader_Android_Source.zip
-          unzip -o ChatGPT_Video_Downloader_Android_Source.zip -d extracted-project
+          test -f ChatGPT_Video_Downloader_Android_Build_Setup.zip
+          unzip -o ChatGPT_Video_Downloader_Android_Build_Setup.zip  -d extracted-project
           test -f extracted-project/ChatGPTVideoDownloadManager/app/src/main/java/com/example/chatgptvideodownloadmanager/MainActivity.kt
 
       - name: Build debug APK
