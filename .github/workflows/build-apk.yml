@@ -4,7 +4,7 @@ name: Build Android APK
 on:
   push:
     paths:
-      - 'ChatGPT_Video_Downloader_Android_Source.zip'
+      -ChatGPT_Video_Downloader_Android_Build_Setup.zip
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
